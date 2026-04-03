@@ -15,6 +15,10 @@ get it there.
 CREATE EXTENSION pg_libphonenumber;
 SELECT parse_packed_phone_number('03 7010 1234', 'AU');
 SELECT parse_packed_phone_number('2819010011', 'US');
+SELECT phone_number_country_code(parse_packed_phone_number('11987654321', 'BR'));
+SELECT phone_number_region_code(parse_packed_phone_number('11987654321', 'BR'));
+SELECT phone_number_geographical_area_code(parse_packed_phone_number('11987654321', 'BR'));
+SELECT phone_number_type(parse_packed_phone_number('11987654321', 'BR'));
 
 CREATE TABLE foo ( ph packed_phone_number );
 ```
@@ -29,7 +33,7 @@ First you'll need to install `libphonenumber-dev` and the corresponding
 ```shell-script
 sudo apt-get update && sudo apt-get install \
     build-essential \
-    postgresql-server-dev-9.6 \
+    postgresql-server-dev-<major> \
     libphonenumber-dev
 ```
 

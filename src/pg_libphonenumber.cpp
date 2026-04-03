@@ -8,6 +8,7 @@ extern "C" {
     #include "libpq/pqformat.h"
     #include "fmgr.h"
     #include "varatt.h"
+    #include "utils/builtins.h"
 }
 
 #include "error_handling.h"
@@ -38,6 +39,98 @@ static char* text_to_c_string(const text* text) {
     memcpy(str, VARDATA(text), len);
     str[len] = '\0';
     return str;
+}
+
+/**
+ * Converts a std::string into a PostgreSQL text object.
+ */
+static text* string_to_text(const std::string& value) {
+    return cstring_to_text_with_len(value.data(), value.size());
+}
+
+/**
+ * Converts a packed phone number back into the libphonenumber object.
+ */
+static PhoneNumber packed_phone_number_to_phone_number(const PackedPhoneNumber* number) {
+    return *number;
+}
+
+/**
+ * Returns the national significant number as defined by libphonenumber.
+ */
+static std::string get_national_significant_number(const PhoneNumber& number) {
+    std::string national_significant_number;
+    phoneUtil->GetNationalSignificantNumber(number, &national_significant_number);
+    return national_significant_number;
+}
+
+/**
+ * Returns the geographical area code for a valid number, or an empty string
+ * when the number has no geographical area code.
+ */
+static std::string get_geographical_area_code(const PhoneNumber& number) {
+    int area_code_length = phoneUtil->GetLengthOfGeographicalAreaCode(number);
+    if(area_code_length <= 0) {
+        return "";
+    }
+
+    std::string national_significant_number = get_national_significant_number(number);
+    if(static_cast<size_t>(area_code_length) > national_significant_number.size()) {
+        return "";
+    }
+
+    return national_significant_number.substr(0, area_code_length);
+}
+
+/**
+ * Returns the national destination code for a valid number, or an empty string
+ * when the number has no national destination code.
+ */
+static std::string get_national_destination_code(const PhoneNumber& number) {
+    int ndc_length = phoneUtil->GetLengthOfNationalDestinationCode(number);
+    if(ndc_length <= 0) {
+        return "";
+    }
+
+    std::string national_significant_number = get_national_significant_number(number);
+    if(static_cast<size_t>(ndc_length) > national_significant_number.size()) {
+        return "";
+    }
+
+    return national_significant_number.substr(0, ndc_length);
+}
+
+/**
+ * Maps libphonenumber number types to stable textual identifiers.
+ */
+static const char* get_phone_number_type_name(PhoneNumberUtil::PhoneNumberType type) {
+    switch(type) {
+        case PhoneNumberUtil::FIXED_LINE:
+            return "FIXED_LINE";
+        case PhoneNumberUtil::MOBILE:
+            return "MOBILE";
+        case PhoneNumberUtil::FIXED_LINE_OR_MOBILE:
+            return "FIXED_LINE_OR_MOBILE";
+        case PhoneNumberUtil::TOLL_FREE:
+            return "TOLL_FREE";
+        case PhoneNumberUtil::PREMIUM_RATE:
+            return "PREMIUM_RATE";
+        case PhoneNumberUtil::SHARED_COST:
+            return "SHARED_COST";
+        case PhoneNumberUtil::VOIP:
+            return "VOIP";
+        case PhoneNumberUtil::PERSONAL_NUMBER:
+            return "PERSONAL_NUMBER";
+        case PhoneNumberUtil::PAGER:
+            return "PAGER";
+        case PhoneNumberUtil::UAN:
+            return "UAN";
+        case PhoneNumberUtil::VOICEMAIL:
+            return "VOICEMAIL";
+        case PhoneNumberUtil::UNKNOWN:
+        default:
+            return "UNKNOWN";
+    }
 }
 
 //Internal function used by packed_phone_number_in and parse_packed_phone_number
@@ -321,6 +414,83 @@ extern "C" {
             const PackedPhoneNumber* number = (PackedPhoneNumber*)PG_GETARG_POINTER(0);
 
             PG_RETURN_INT32(number->country_code());
+        } catch(std::exception& e) {
+            reportException(e);
+            PG_RETURN_NULL();
+        }
+    }
+
+    PGDLLEXPORT PG_FUNCTION_INFO_V1(packed_phone_number_region_code);
+
+    PGDLLEXPORT Datum
+    packed_phone_number_region_code(PG_FUNCTION_ARGS) {
+        try {
+            const PackedPhoneNumber* packed_number = (PackedPhoneNumber*)PG_GETARG_POINTER(0);
+            PhoneNumber number = packed_phone_number_to_phone_number(packed_number);
+            std::string region_code;
+
+            phoneUtil->GetRegionCodeForNumber(number, &region_code);
+            if(region_code.empty()) {
+                PG_RETURN_NULL();
+            }
+
+            PG_RETURN_TEXT_P(string_to_text(region_code));
+        } catch(std::exception& e) {
+            reportException(e);
+            PG_RETURN_NULL();
+        }
+    }
+
+    PGDLLEXPORT PG_FUNCTION_INFO_V1(packed_phone_number_geographical_area_code);
+
+    PGDLLEXPORT Datum
+    packed_phone_number_geographical_area_code(PG_FUNCTION_ARGS) {
+        try {
+            const PackedPhoneNumber* packed_number = (PackedPhoneNumber*)PG_GETARG_POINTER(0);
+            PhoneNumber number = packed_phone_number_to_phone_number(packed_number);
+            std::string area_code = get_geographical_area_code(number);
+
+            if(area_code.empty()) {
+                PG_RETURN_NULL();
+            }
+
+            PG_RETURN_TEXT_P(string_to_text(area_code));
+        } catch(std::exception& e) {
+            reportException(e);
+            PG_RETURN_NULL();
+        }
+    }
+
+    PGDLLEXPORT PG_FUNCTION_INFO_V1(packed_phone_number_national_destination_code);
+
+    PGDLLEXPORT Datum
+    packed_phone_number_national_destination_code(PG_FUNCTION_ARGS) {
+        try {
+            const PackedPhoneNumber* packed_number = (PackedPhoneNumber*)PG_GETARG_POINTER(0);
+            PhoneNumber number = packed_phone_number_to_phone_number(packed_number);
+            std::string national_destination_code = get_national_destination_code(number);
+
+            if(national_destination_code.empty()) {
+                PG_RETURN_NULL();
+            }
+
+            PG_RETURN_TEXT_P(string_to_text(national_destination_code));
+        } catch(std::exception& e) {
+            reportException(e);
+            PG_RETURN_NULL();
+        }
+    }
+
+    PGDLLEXPORT PG_FUNCTION_INFO_V1(packed_phone_number_type);
+
+    PGDLLEXPORT Datum
+    packed_phone_number_type(PG_FUNCTION_ARGS) {
+        try {
+            const PackedPhoneNumber* packed_number = (PackedPhoneNumber*)PG_GETARG_POINTER(0);
+            PhoneNumber number = packed_phone_number_to_phone_number(packed_number);
+            const char* type_name = get_phone_number_type_name(phoneUtil->GetNumberType(number));
+
+            PG_RETURN_TEXT_P(cstring_to_text(type_name));
         } catch(std::exception& e) {
             reportException(e);
             PG_RETURN_NULL();

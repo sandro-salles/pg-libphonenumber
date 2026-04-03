@@ -13,7 +13,7 @@ ERROR:  phone number '+1 5555555555555555' is too long
 DETAIL:  National number is too long
 --Produces an error from libphonenumber
 select parse_packed_phone_number('555-555-55555555555', 'US');
-ERROR:  unable to parse '555-555-55555555555' as a phone number
+ERROR:  phone number '+1 55555555555555555' is too long
 DETAIL:  National number is too long
 -- Do we get correct country codes?
 -- TODO: expand.
@@ -21,5 +21,49 @@ select phone_number_country_code(parse_packed_phone_number('+1-555-555-5555', 'U
  phone_number_country_code 
 ---------------------------
                          1
+(1 row)
+
+select phone_number_country_code(parse_packed_phone_number('11987654321', 'BR'));
+ phone_number_country_code 
+---------------------------
+                        55
+(1 row)
+
+-- Region and area code helpers.
+select phone_number_region_code(parse_packed_phone_number('11987654321', 'BR'));
+ phone_number_region_code 
+--------------------------
+ BR
+(1 row)
+
+select phone_number_geographical_area_code(parse_packed_phone_number('11987654321', 'BR'));
+ phone_number_geographical_area_code 
+-------------------------------------
+ 11
+(1 row)
+
+select phone_number_national_destination_code(parse_packed_phone_number('11987654321', 'BR'));
+ phone_number_national_destination_code 
+----------------------------------------
+ 11
+(1 row)
+
+-- Number types.
+select phone_number_type(parse_packed_phone_number('11987654321', 'BR'));
+ phone_number_type 
+-------------------
+ MOBILE
+(1 row)
+
+select phone_number_type(parse_packed_phone_number('08001234567', 'BR'));
+ phone_number_type 
+-------------------
+ TOLL_FREE
+(1 row)
+
+select phone_number_geographical_area_code(parse_packed_phone_number('08001234567', 'BR'));
+ phone_number_geographical_area_code 
+-------------------------------------
+ 
 (1 row)
 
