@@ -22,3 +22,26 @@ select phone_number_national_destination_code(parse_packed_phone_number('1198765
 select phone_number_type(parse_packed_phone_number('11987654321', 'BR'));
 select phone_number_type(parse_packed_phone_number('08001234567', 'BR'));
 select phone_number_geographical_area_code(parse_packed_phone_number('08001234567', 'BR'));
+select phone_number_is_valid(parse_packed_phone_number('11987654321', 'BR'));
+select phone_number_is_valid(parse_packed_phone_number('1187654321', 'BR'));
+select phone_number_possible_reason(parse_packed_phone_number('11987654321', 'BR'));
+select phone_number_possible_reason(parse_packed_phone_number('1187654321', 'BR'));
+
+-- Functions used in bulk validation must not disable PostgreSQL parallel plans.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM pg_proc
+        WHERE oid IN (
+            'parse_packed_phone_number(text, text)'::regprocedure,
+            'phone_number_type(packed_phone_number)'::regprocedure,
+            'phone_number_is_valid(packed_phone_number)'::regprocedure,
+            'phone_number_possible_reason(packed_phone_number)'::regprocedure
+        )
+          AND proparallel <> 's'
+    ) THEN
+        RAISE EXCEPTION 'bulk validation functions are not PARALLEL SAFE';
+    END IF;
+END
+$$;

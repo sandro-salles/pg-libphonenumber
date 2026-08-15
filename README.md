@@ -19,9 +19,16 @@ SELECT phone_number_country_code(parse_packed_phone_number('11987654321', 'BR'))
 SELECT phone_number_region_code(parse_packed_phone_number('11987654321', 'BR'));
 SELECT phone_number_geographical_area_code(parse_packed_phone_number('11987654321', 'BR'));
 SELECT phone_number_type(parse_packed_phone_number('11987654321', 'BR'));
+SELECT phone_number_is_valid(parse_packed_phone_number('11987654321', 'BR'));
+SELECT phone_number_possible_reason(parse_packed_phone_number('1187654321', 'BR'));
 
 CREATE TABLE foo ( ph packed_phone_number );
 ```
+
+`parse_packed_phone_number`, `phone_number_type`, `phone_number_is_valid` and
+`phone_number_possible_reason` are declared `PARALLEL SAFE`, allowing bulk
+validation queries to use PostgreSQL parallel workers. These functions use
+only backend-local memory and read-only libphonenumber metadata.
 
 ## Installation
 

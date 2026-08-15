@@ -142,7 +142,7 @@ CREATE OPERATOR CLASS packed_phone_number_ops
 -- Constructors
 
 CREATE FUNCTION parse_packed_phone_number(text, text) RETURNS packed_phone_number
-    LANGUAGE c IMMUTABLE STRICT
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
     AS 'pg_libphonenumber', 'parse_packed_phone_number';
 
 --
@@ -166,5 +166,13 @@ CREATE FUNCTION phone_number_national_destination_code(packed_phone_number) RETU
     AS 'pg_libphonenumber', 'packed_phone_number_national_destination_code';
 
 CREATE FUNCTION phone_number_type(packed_phone_number) RETURNS text
-    LANGUAGE c IMMUTABLE STRICT
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
     AS 'pg_libphonenumber', 'packed_phone_number_type';
+
+CREATE FUNCTION phone_number_is_valid(packed_phone_number) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
+    AS 'pg_libphonenumber', 'packed_phone_number_is_valid';
+
+CREATE FUNCTION phone_number_possible_reason(packed_phone_number) RETURNS text
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
+    AS 'pg_libphonenumber', 'packed_phone_number_possible_reason';

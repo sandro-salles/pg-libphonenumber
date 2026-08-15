@@ -1,4 +1,4 @@
-FROM postgres:10
+FROM postgres:16-bookworm
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -9,11 +9,10 @@ RUN apt-get update && apt-get install -y \
 COPY ./ /data/
 RUN chown -R postgres:postgres /data/
 
-# Patch the entrypoint script so it always initializes the DB.
-RUN patch /usr/local/bin/docker-entrypoint.sh < /data/docker/docker-entrypoint.patch
-
 # Build pg_libphonenumber.
 WORKDIR /data
-RUN make && make install
+RUN make clean && make && make install
+
+USER postgres
 
 CMD ["/data/docker/run-tests.sh", "${PG_MAJOR}"]

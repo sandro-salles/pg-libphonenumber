@@ -133,6 +133,29 @@ static const char* get_phone_number_type_name(PhoneNumberUtil::PhoneNumberType t
     }
 }
 
+/**
+ * Maps libphonenumber possibility results to stable textual identifiers.
+ */
+static const char* get_phone_number_possible_reason_name(
+        PhoneNumberUtil::ValidationResult result) {
+    switch(result) {
+        case PhoneNumberUtil::IS_POSSIBLE:
+            return "IS_POSSIBLE";
+        case PhoneNumberUtil::IS_POSSIBLE_LOCAL_ONLY:
+            return "IS_POSSIBLE_LOCAL_ONLY";
+        case PhoneNumberUtil::INVALID_COUNTRY_CODE:
+            return "INVALID_COUNTRY_CODE";
+        case PhoneNumberUtil::TOO_SHORT:
+            return "TOO_SHORT";
+        case PhoneNumberUtil::INVALID_LENGTH:
+            return "INVALID_LENGTH";
+        case PhoneNumberUtil::TOO_LONG:
+            return "TOO_LONG";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 //Internal function used by packed_phone_number_in and parse_packed_phone_number
 //TODO: take a std::string to minimize copying?
 PackedPhoneNumber* do_parse_packed_phone_number(const char* number_str, const char* country) {
@@ -491,6 +514,55 @@ extern "C" {
             const char* type_name = get_phone_number_type_name(phoneUtil->GetNumberType(number));
 
             PG_RETURN_TEXT_P(cstring_to_text(type_name));
+        } catch(std::exception& e) {
+            reportException(e);
+            PG_RETURN_NULL();
+        }
+    }
+
+    /*
+     * Compatibility symbol used by older 0.1.0 installations. The 0.2.0 SQL
+     * definition points directly at packed_phone_number_type, but retaining
+     * this alias keeps existing databases operational during a rolling
+     * extension upgrade.
+     */
+    PGDLLEXPORT PG_FUNCTION_INFO_V1(phone_number_type);
+
+    PGDLLEXPORT Datum
+    phone_number_type(PG_FUNCTION_ARGS) {
+        return packed_phone_number_type(fcinfo);
+    }
+
+    PGDLLEXPORT PG_FUNCTION_INFO_V1(packed_phone_number_is_valid);
+
+    PGDLLEXPORT Datum
+    packed_phone_number_is_valid(PG_FUNCTION_ARGS) {
+        try {
+            const PackedPhoneNumber* packed_number =
+                (PackedPhoneNumber*)PG_GETARG_POINTER(0);
+            PhoneNumber number =
+                packed_phone_number_to_phone_number(packed_number);
+
+            PG_RETURN_BOOL(phoneUtil->IsValidNumber(number));
+        } catch(std::exception& e) {
+            reportException(e);
+            PG_RETURN_NULL();
+        }
+    }
+
+    PGDLLEXPORT PG_FUNCTION_INFO_V1(packed_phone_number_possible_reason);
+
+    PGDLLEXPORT Datum
+    packed_phone_number_possible_reason(PG_FUNCTION_ARGS) {
+        try {
+            const PackedPhoneNumber* packed_number =
+                (PackedPhoneNumber*)PG_GETARG_POINTER(0);
+            PhoneNumber number =
+                packed_phone_number_to_phone_number(packed_number);
+            const char* reason_name = get_phone_number_possible_reason_name(
+                phoneUtil->IsPossibleNumberWithReason(number));
+
+            PG_RETURN_TEXT_P(cstring_to_text(reason_name));
         } catch(std::exception& e) {
             reportException(e);
             PG_RETURN_NULL();

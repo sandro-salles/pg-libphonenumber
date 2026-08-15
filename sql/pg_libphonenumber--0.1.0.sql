@@ -142,7 +142,7 @@ CREATE OPERATOR CLASS packed_phone_number_ops
 -- Constructors
 
 CREATE FUNCTION parse_packed_phone_number(text, text) RETURNS packed_phone_number
-    LANGUAGE c IMMUTABLE STRICT
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
     AS 'pg_libphonenumber', 'parse_packed_phone_number';
 
 --

@@ -1,3 +1,5 @@
+ALTER FUNCTION parse_packed_phone_number(text, text) PARALLEL SAFE;
+
 CREATE FUNCTION phone_number_region_code(packed_phone_number) RETURNS text
     LANGUAGE c IMMUTABLE STRICT
     AS 'pg_libphonenumber', 'packed_phone_number_region_code';
@@ -10,7 +12,14 @@ CREATE FUNCTION phone_number_national_destination_code(packed_phone_number) RETU
     LANGUAGE c IMMUTABLE STRICT
     AS 'pg_libphonenumber', 'packed_phone_number_national_destination_code';
 
-CREATE FUNCTION phone_number_type(packed_phone_number) RETURNS text
-    LANGUAGE c IMMUTABLE STRICT
+CREATE OR REPLACE FUNCTION phone_number_type(packed_phone_number) RETURNS text
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
     AS 'pg_libphonenumber', 'packed_phone_number_type';
 
+CREATE FUNCTION phone_number_is_valid(packed_phone_number) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
+    AS 'pg_libphonenumber', 'packed_phone_number_is_valid';
+
+CREATE FUNCTION phone_number_possible_reason(packed_phone_number) RETURNS text
+    LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE
+    AS 'pg_libphonenumber', 'packed_phone_number_possible_reason';
