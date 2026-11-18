@@ -106,7 +106,7 @@ CREATE OPERATOR > (
     leftarg = packed_phone_number,
     rightarg = packed_phone_number,
     procedure = packed_phone_number_greater,
-    commutator = >,
+    commutator = <,
     negator = <=,
     restrict = scalargtsel,
     join = scalargtjoinsel
@@ -120,7 +120,7 @@ CREATE OPERATOR >= (
     leftarg = packed_phone_number,
     rightarg = packed_phone_number,
     procedure = packed_phone_number_greater_or_equal,
-    commutator = >=,
+    commutator = <=,
     negator = <,
     restrict = scalargtsel,
     join = scalargtjoinsel

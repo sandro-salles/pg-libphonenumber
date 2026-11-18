@@ -109,3 +109,18 @@ BEGIN
     END IF;
 END
 $$;
+-- PostgreSQL may commute comparisons when it changes the order of a join.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM (VALUES ('<', '>'), ('<=', '>='), ('>', '<'), ('>=', '<=')) AS expected(op, reversed_op)
+        LEFT JOIN pg_operator o ON o.oprname = expected.op
+            AND o.oprleft = 'packed_phone_number'::regtype AND o.oprright = o.oprleft
+        LEFT JOIN pg_operator reversed ON reversed.oid = o.oprcom
+        WHERE reversed.oprname IS DISTINCT FROM expected.reversed_op
+    ) THEN
+        RAISE EXCEPTION 'invalid phone comparison commutators';
+    END IF;
+END
+$$;

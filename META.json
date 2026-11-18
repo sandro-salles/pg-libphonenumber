@@ -1,14 +1,14 @@
 {
     "name": "pg_libphonenumber",
     "abstract": "Stores and manipulates phone numbers using Google's libphonenumber",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "maintainer": "Benjamin L. Merritt <blm768@gmail.com>",
     "license": "apache_2_0",
     "provides": {
       "pg_libphonenumber": {
          "abstract": "Stores and manipulates phone numbers using Google's libphonenumber",
-         "file": "pg_libphonenumber--0.2.0.sql",
-         "version": "0.2.0"
+         "file": "sql/pg_libphonenumber--0.2.0--0.2.1.sql",
+         "version": "0.2.1"
       }
     },
     "resources": {
